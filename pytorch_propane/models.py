@@ -29,15 +29,17 @@ class Model:
     
     
     def add_metric( self ,  metric , display_name=None  ,  output_key=None  , mode=None):
-        '''
-        
-        add metrics to display which do not contribute to the loss gradients ! 
-        
-        output_key -> key / index of model output where the loss should be applied 
-        display name -> the name of the loss which you have to display
-        metric -> similar to the loss object 
-        
-        '''
+        """ 
+        Add metrics to display which do not contribute to the loss gradients 
+
+        Args:
+            metric ([type]):  similar to the loss object 
+            display_name ([type], optional): the name of the loss which you have to display . Defaults to None.
+            output_key ([type], optional):  key / index of model output where the loss should be applied. Defaults to None.
+            mode ([type], optional): It can be train or eval mode. Defaults to None.
+        """
+
+ 
         if not isinstance(metric , Loss ):
             metric = Loss(  loss_fn=metric , key=output_key  )
             
@@ -51,12 +53,15 @@ class Model:
             
     
     def add_loss( self , loss , output_key=None , display_name=None , loss_weight=1  ):
+        """Add a loss function / object to the model
+
+        Args:
+            loss ([type]): the function / string of the loss 
+            output_key ([type], optional):key / index of model output where the loss should be applied . Defaults to None.
+            display_name ([type], optional): the name of the loss which you have to display. Defaults to None.
+            loss_weight (int, optional): [description]. Defaults to 1.
         """
-        output_key -> key / index of model output where the loss should be applied 
-        display name -> the name of the loss which you have to display
-        loss -> the function / string of the loss 
-        """
-        
+
         if not isinstance(loss , Loss ):
             loss = Loss(  loss_fn=loss , key=output_key, loss_weight=loss_weight )
             
@@ -66,6 +71,12 @@ class Model:
         self.loss_modules.append( (loss , display_name ) )
         
     def set_optimiszer( self , optimizer ):
+        """Set the optimizer to the model.
+
+        Args:
+            optimizer ([type]):  It could be a optimizer name as string , or pytorch optimizer class or optimizer object
+        """
+
         opts_dict = { 'sgd':optim.SGD , 'adam' :optim.Adam , 'adadelta': optim.Adadelta , 'adagrad': optim.Adagrad , 'rmsprop':optim.RMSprop }
         
         if isinstance(optimizer , string_types):
@@ -80,9 +91,17 @@ class Model:
         
         
     def compute_loss( self ,  model_output=None ,  data_y=None  , data_x=None  ):
-        '''
-        aggrigate all the loss functions and apply it 
-        '''
+        """Aggrigate all the loss functions which are attached to the models and apply it 
+
+        Args:
+            model_output ([type], optional): [description]. The predicted model output
+            data_y ([type], optional): Groundtruth y . Defaults to None.
+            data_x ([type], optional): Groundtruth x . Defaults to None.
+
+        Returns:
+            [type]: total loss and a dictionary of each loss value 
+        """
+
         loss_dict = {}
         total_loss = 0
         
@@ -94,9 +113,17 @@ class Model:
         return total_loss , loss_dict 
     
     def compute_metrics( self , model_output=None ,  data_y=None  , data_x=None  , mode='train' ):
-        '''
-        compute all the metrics LOL 
-        '''
+        """Compute all the metrcis which are attached to the model
+
+        Args:
+            model_output ([type], optional): [description]. Defaults to None.
+            data_y ([type], optional): [description]. Defaults to None.
+            data_x ([type], optional): [description]. Defaults to None.
+            mode (str, optional): [description]. Defaults to 'train'.
+
+        Returns:
+            [type]: [description]
+        """
         loss_dict = {}
         total_loss = 0
         
@@ -116,6 +143,17 @@ class Model:
     
     
     def compile( self , optimizer=None  , loss=None , metrics=[] , loss_weights=None , cuda=False  , data_parallel=False  ):
+        """Compile the model, keras style. It will attach things like optimizer, loss functions etc etc. 
+
+        Args:
+            optimizer ([type], optional): [description]. Defaults to None.
+            loss ([type], optional): [description]. Defaults to None.
+            metrics (list, optional): [description]. Defaults to [].
+            loss_weights ([type], optional): [description]. Defaults to None.
+            cuda (bool, optional): [description]. Defaults to False.
+            data_parallel (bool, optional): [description]. Defaults to False.
+        """
+
         for metric in metrics:
             self.add_metric( metric )
             
