@@ -15,14 +15,27 @@ class Registry():
     def register_dataloader(self , dataloader_fn , dataloader_name):
         self.dataloaders[dataloader_name] = dataloader_fn
 
+    def get_model( self , model_name ):
+        return self.models[model_name]
+
+    def get_dataloader( self , dataloader_name):
+        return self.dataloaders[ dataloader_name ]
     # the decorateors : 
 
     def model(self , model_name  ):
         def decorator(model_fn):
-            self.register_model(model_fn , model_name)
-            model_fn.model_name = model_name 
-            model_fn.registry = self 
-            return model_fn 
+
+            @wraps( model_fn )
+            def new_model_fn(*args , **kwargs):
+                out = model_fn( *args , **kwargs )
+                model_fn.model_name = model_name 
+                model_fn.registry = self 
+                return out 
+
+            self.register_model(new_model_fn , model_name)
+            new_model_fn.model_name = model_name 
+            new_model_fn.registry = self 
+            return new_model_fn 
         return decorator
 
     def default_dataloader( self , dataloader ):

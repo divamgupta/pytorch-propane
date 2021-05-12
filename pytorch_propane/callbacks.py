@@ -92,8 +92,6 @@ class ModelCheckpoint( Callback ):
         if self.only_save_at_end :
             return 
         
-        
-        
         if (epoch+1)%self.frequency == 0:
             if self.overwrite_epochs :
                 model_path = self.checkpoint_path + "_weights." + str( 0 )
