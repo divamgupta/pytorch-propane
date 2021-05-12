@@ -109,6 +109,10 @@ class ModelCheckpoint( Callback ):
         
     
         
-            
+class TensorboardCallback( Callback ):
+    def __init__(self):
+        super(TensorboardCallback, self).__init__()
+        # todo 
+
 
 

@@ -306,7 +306,8 @@ class Model:
                 callback( data_x=data_x , data_y=data_y[output_key] , model_output=model_output[output_key] )
             if sanity and batch_idx>=3:
                 break                 
-        callback.on_end()     
+        callback.on_end()  
+           
             
         
     
@@ -314,6 +315,7 @@ class Model:
         
         if sanity:
             epochs = min( sanity , 3 )
+
         
         total_iter_done = 0 
         for epoch in range(epochs) :
@@ -352,5 +354,7 @@ class Model:
     def load_weights( self , weights_path ):
         self.network.load_state_dict(torch.load(weights_path))
     
+    
+
     
     
