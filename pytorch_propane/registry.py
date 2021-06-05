@@ -38,6 +38,9 @@ class Registry():
             return new_model_fn 
         return decorator
 
+    def add_model_function( self , function ):
+        pass 
+
     def default_dataloader( self , dataloader ):
         if isinstance(dataloader , string_types):
             if not dataloader in self.dataloaders:
