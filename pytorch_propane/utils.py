@@ -10,6 +10,88 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 
 from tqdm import tqdm 
+import copy 
+
+def get_function_args( fn ):
+    """returns a list of all argumnts, dict of all the defualts , and list of all non default arguments 
+
+    Args:
+        fn (function): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    args = inspect.getargspec( fn  ).args 
+    n_defaults = len(inspect.getargspec( fn  ).defaults  )
+
+    if n_defaults > 0:
+        default_args = args[ -1*n_defaults : ]
+    else:
+        default_args = []
+
+    defaults = { a[0]:a[1] for a in zip(default_args , list(inspect.getargspec( fn  ).defaults ) ) }
+    non_defaults = args[: len( args) - n_defaults ]
+
+    return args , defaults , non_defaults 
+
+
+# given a dictionary kwargs .. this will return which all of those can be sent to the function fn_name  
+def filter_functions_kwargs(fn_name , kwargs ):
+    fn_args = inspect.getargspec( fn_name  ).args
+    ret = {}
+    for k in kwargs:
+        if k in fn_args:
+            ret[ k ] = kwargs[k]
+    return ret  
+
+
+def str_to_auto_type(var):
+    #first test bools
+    if var == 'True' or var=='true':
+            return True
+    elif var == 'False' or var=='false':
+            return False
+    else:
+            #int
+            try:
+                    return int(var)
+            except ValueError:
+                    pass
+            #float
+            try:
+                    return float(var)
+            except ValueError:
+                    pass
+
+            # homogenus list 
+            # todo 
+
+
+            #string
+            try:
+                    return str(var)
+            except ValueError:
+                    raise NameError('Something Messed Up Autocasting var %s (%s)' 
+                                      % (var, type(var)))
+
+
+# returns a dictionarly of named args from cli!! 
+def get_cli_opts(argv):
+    opts = {}  # Empty dictionary to store key-value pairs.
+
+    argv= copy.deepcopy(argv)
+
+    while argv:  # While there are arguments left to parse...
+        if argv[0][0] == '-':  # Found a "-name value" pair.
+
+            argv[0] = argv[0][1:]
+
+            if argv[0][0] == '-': # just in case there were '--' then that should also go 
+                argv[0] = argv[0][1:]
+
+            opts[argv[0]] = str_to_auto_type( argv[1] )   # Add key and value to the dictionary.
+        argv = argv[1:]  # Reduce the argument list by copying it starting from index 1.
+    return opts
 
 
 

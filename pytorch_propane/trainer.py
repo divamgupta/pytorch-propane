@@ -1,131 +1,100 @@
 # this module provides a high level training method, which saves model etc etc etc . This is different from the model.fit 
 
 from six import string_types
-import inspect 
+from registry import registry
+from function import Function 
+import yaml
+import os 
+
+from .callbacks import ModelCheckpoint ,  Callback
+
+def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 ):
+    
+    print("loaded weights " , loadmodel )
 
 
 
-def filter_functions_kwargs():
+
+def get_model_from_checkpoint( load_checkpoint_path , return_function=True ,  checkpoints_epoch=-1):
     pass 
 
-def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_epoch=None  , **kwargs ):
-    """Takes the model_name or the checkpoints_path , or both and return a model object and the filtered model_kwargs from kwargs 
+
+class ModelTrainingStatusCallback( Callback ):
+    """a callback which sets the status of the training in a file. the statuses are started meaning training in progress and finished meaning training ended 
 
     Args:
-        kwargs ([type]): [description]
-        model_name ([type], optional): [description]. Defaults to None.
-        load_checkpoint_path ([type], optional): [description]. Defaults to None.
-        checkpoints_epoch ([type], optional): [description]. Defaults to None.
-
-    Raises:
-        ValueError: [description]
-
-    Returns:
-        [type]: [description]
+        Callback ([type]): [description]
     """
+    def __init__(self , status_file_path ):
+        super(ModelTrainingStatusCallback, self).__init__()
+        self.status_file_path = status_file_path 
+
+    def on_train_batch_end( self , batch , logs=None ):
+        if batch > 1:
+            open( self.status_file_path , 'w').write("started")
 
 
-    if model_name is None and load_checkpoint_path is None:
-        raise ValueError("model_name cant be none if model or checkpoint path is not provided")
-    
-    # load the model if the model name is provided
-    if not model_name is None:
-        model_fn  = registry.get_model( model_name )
-        model_kwargs = filter_functions_kwargs( model_fn , kwargs )
-        model = model_fn(**model_kwargs)
-    
+    def on_train_end( self , logs=None ):
+        open( self.status_file_path , 'w').write("finished")
 
-    if not load_checkpoint_path is None:
-        if model is None:
-            model = get_model_from_checkpoint( load_checkpoint_path )
-        else:
-            load_checkpoints_weights( model , checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch )
+# status file -> starting , started , finished 
 
-    return model , model_kwargs 
-
-def get_dataloader_object(dataloader_name=None , **kwargs  ):
-    """Takes the dataloader_name  return a dataloader object and the filtered dataloader_kwargs from kwargs 
-
-    Args:
-        dataloader_name ([type], optional): [description]. Defaults to None.
-
-    Raises:
-        ValueError: [description]
-
-    Returns:
-        [type]: [description]
-    """
-    if dataloader_name is None:
-        raise ValueError("The function needs dataloader and you have not provided any dataloader info")
-    
-    dataloader_fn = registry.get_dataloader(dataloader_name) 
-    dataloader_kwargs = filter_functions_kwargs( dataloader_fn , kwargs )
-    dataloader = dataloader_fn(**dataloader_kwargs)
-    return dataloader , dataloader_kwargs 
-
-
-# this is the Function base class where users can inherit the Functions class 
-# after inherit the user can fill the execute function where they can take model, dataloader objects as input 
-# and now the __call__ is a wrapper which takes things like model_name string etc and converts to the model object so that the user does not have to do that manually 
-# and this class also creates a cli version of the function as well! 
-class Function:
+# @register_function 
+class Trainer(Function):
     def __init__(self):
         pass
+
+    def execute(self , model , dataloader , eval_dataloader=None , save_path=None , 
+        load_path=None , load_epoch=-1 , overwrite_prev_training=False , n_epochs=1 , sanity=False , 
+        save_frequency =1   , which_epochs_to_save=None , overwrite_epochs=False ,  auto_resume_checkpoint=False , 
+         ):
+        pass 
+
+
+        # save the config etc 
+        config_path = save_path + "_config.yaml"
+        model_config_path = save_path + "__model_config.yaml"
+        status_file_path = save_path + "_status.txt"
+
+        # throw exception if training had already happened and finished for the given save path 
+        if os.path.exists(status_file_path):
+            prev_status = open( status_file_path).read()
+            if prev_status == 'finished':
+                if not overwrite_prev_training:
+                    raise Exception("Looks like training was finished at this checkpoint path " + save_path ) 
+
+        
+        open( status_file_path , 'w').write("starting")
+
+        # save all the config files 
+        yaml.dump(self.function_args_ser  , open(config_path), 'w')
+        yaml.dump(self.model_args  , open(model_config_path), 'w')
+
+        if not save_path is None:
+            model.add_callback( ModelCheckpoint( save_path  , save_frequency  , overwrite_epochs=overwrite_epochs ) )
+
+        model.add_callback( ModelTrainingStatusCallback(status_file_path) )
+
     
-    # you can override this function and put whatever you wanna put 
-    def execute():
-        raise NotImplementedError("This needs to be overridden")
+        if not load_path is None:
+            load_checkpoints_weights( model , load_path , checkpoints_epoch=load_epoch  )
 
-    # do not override this one tho ! 
-    def __call__(self,  model=None  , model_name=None , load_checkpoint_path=None , checkpoints_epoch=None , 
-        dataloader=None , dataloader_name=None , 
-        eval_dataloader=None , eval_dataloader_name=None  , **kwargs ) :
-        # inspect the functions and see if the model needs some argument or not 
-        function_needs_model = ( 'model' in inspect.getargspec( self.execute  ).args )
-        function_needs_dataloader = ( 'dataloader' in inspect.getargspec( self.execute  ).args )
-        function_needs_eval_dataloader = ( 'eval_dataloader' in inspect.getargspec( self.execute  ).args )
+        # todo: add a callback which can add status "training after first 2-3 succesful iterations"
+        # todo : add a callback which can add things like to log all the training in a file! 
 
-        model_kwargs = {}
-        dataloader_kwargs={}
-        eval_dataloader_kwargs={}
 
-        assert (not isinstance(model  , string_types)  ) # ensure that model shold actually be a model object haha 
 
-        if model is None  and function_needs_model :
-            model , model_kwargs = get_model_object(model_name=model_name , load_checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch  , **kwargs )
-
-        if dataloader is None and function_needs_dataloader :
-            dataloader , dataloader_kwargs = get_dataloader_object(dataloader_name=dataloader_name , **kwargs  )
-
-        if eval_dataloader is None and function_needs_eval_dataloader :
-            eval_dataloader , eval_dataloader_kwargs = get_dataloader_object(dataloader_name=eval_dataloader_name , **kwargs  )
-
-        # we dont want the kwargs which are sent to model/datalader to be sent to the function 
-        non_function_keys = set( eval_dataloader_kwargs.keys() + dataloader_kwargs.keys() + model_kwargs.keys() ) 
-        fn_kwargs = {}
-        for k in kwargs:
-            if not k in non_function_keys:
-                fn_kwargs[k] = kwargs[k ]
+        # start training 
+        model.fit_dataset( dataloader , validation_data=eval_dataloader , epochs=n_epochs  , sanity=sanity  )
         
-        # we have transformed model/dataloder names etc to model/datalodaer objects. now lets add them to a dict to pass to the execute functions 
-        object_args = {} 
-        if function_needs_eval_dataloader:
-            assert not eval_dataloader is None
-            object_args[eval_dataloader] = eval_dataloader
 
-        if function_needs_dataloade:
-            assert not dataloader is None
-            object_args[dataloader] = dataloader
+        # todo : do some eval and then save the results in another file 
 
-        if function_needs_model:
-            assert not model is None
-            object_args[model] = model 
-        
-        return self.execute( **object_args  , **fn_kwargs )
 
-    # this one will be used by the cli engine 
-    def _call_cli(self):
-        pass
+
+
+
+
 
 
 # todo have a function decorator which returns this function object actually  , to transform the def function to the an instance of a class object with the __call__ method
@@ -136,13 +105,10 @@ def register_functions(name=None):
     if name is None:
         pass
 
-@register_function 
-class Trainer(Function):
-    def __init__(self):
-        pass
 
 
-@register_function(name="train" )
+
+# @register_function(name="train" )
 def train(
     model 
 ):
@@ -151,3 +117,6 @@ def train(
 # this register function is all the user neeeds to put, whether over a class Function or a def function .. it will figure out if its a fn or class , and register it 
 # this can be declared in the registry only 
 # you should be able to register these globally or you can register these only to a model.. say you wanna have diffrent trains for diffrnet models 
+
+
+# IMP even if the model name etc has not been registerd to the registry ,,, the code shuld also map the model_name string via the functions definition 

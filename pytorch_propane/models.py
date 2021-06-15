@@ -16,6 +16,8 @@ from .loss import Loss
 from .utils import get_vars , get_np_arrs  , ProgressBar
 from .callbacks import Callback 
 
+
+
         
 class Model:
     def __init__(self , network ):
