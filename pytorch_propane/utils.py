@@ -22,14 +22,20 @@ def get_function_args( fn ):
         [type]: [description]
     """
     args = inspect.getargspec( fn  ).args 
-    n_defaults = len(inspect.getargspec( fn  ).defaults  )
+
+    if inspect.getargspec( fn  ).defaults  is None:
+        n_defaults = 0 
+        def_args = []
+    else:
+        n_defaults = len(inspect.getargspec( fn  ).defaults  )
+        def_args = list(inspect.getargspec( fn  ).defaults ) 
 
     if n_defaults > 0:
         default_args = args[ -1*n_defaults : ]
     else:
         default_args = []
 
-    defaults = { a[0]:a[1] for a in zip(default_args , list(inspect.getargspec( fn  ).defaults ) ) }
+    defaults = { a[0]:a[1] for a in zip(default_args , def_args  ) }
     non_defaults = args[: len( args) - n_defaults ]
 
     return args , defaults , non_defaults 

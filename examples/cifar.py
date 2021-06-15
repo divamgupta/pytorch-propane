@@ -38,6 +38,16 @@ def get_CIFAR10(root="/tmp/"):
 
     return input_size, num_classes, train_dataset, test_dataset
 
+@registry.register_dataset("cifar_data_train")
+def train_data(pupu):
+    print("pupu is the best " , pupu )
+    return get_CIFAR10()[2]
+
+
+@registry.register_dataset("cifar_data_test")
+def test_data():
+    return get_CIFAR10()[3]
+
 
 
 class CifarNet(torch.nn.Module):
@@ -57,8 +67,9 @@ class CifarNet(torch.nn.Module):
 
         return x
 
-
-def get_model():
+@registry.register_model("cifar_model_1.0")
+def get_model( some_arg ):
+    print("some_arg" ,  some_arg )
     network = CifarNet()
     model = Model( network=network )
     model.compile( optimizer='adam' , loss='nll_loss' , cuda=True )
@@ -66,3 +77,8 @@ def get_model():
 
 
 
+from pytorch_propane.trainer import Trainer
+tr = Trainer()
+tr(model_name="cifar_model_1.0" , dataset_name="cifar_data_train" ,
+  eval_dataset_name="cifar_data_test" , batch_size=12 , eval_batch_size=2 , pupu=45 
+  , some_arg='jjj' )

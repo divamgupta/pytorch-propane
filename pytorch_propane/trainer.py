@@ -1,22 +1,14 @@
 # this module provides a high level training method, which saves model etc etc etc . This is different from the model.fit 
 
 from six import string_types
-from registry import registry
-from function import Function 
+from .registry import registry
+from .function import Function 
 import yaml
 import os 
+import glob 
 
 from .callbacks import ModelCheckpoint ,  Callback
-
-def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 ):
-    
-    print("loaded weights " , loadmodel )
-
-
-
-
-def get_model_from_checkpoint( load_checkpoint_path , return_function=True ,  checkpoints_epoch=-1):
-    pass 
+from .function import get_model_from_checkpoint , load_checkpoints_weights 
 
 
 class ModelTrainingStatusCallback( Callback ):
@@ -52,37 +44,36 @@ class Trainer(Function):
 
 
         # save the config etc 
-        config_path = save_path + "_config.yaml"
-        model_config_path = save_path + "__model_config.yaml"
-        status_file_path = save_path + "_status.txt"
-
-        # throw exception if training had already happened and finished for the given save path 
-        if os.path.exists(status_file_path):
-            prev_status = open( status_file_path).read()
-            if prev_status == 'finished':
-                if not overwrite_prev_training:
-                    raise Exception("Looks like training was finished at this checkpoint path " + save_path ) 
-
-        
-        open( status_file_path , 'w').write("starting")
-
-        # save all the config files 
-        yaml.dump(self.function_args_ser  , open(config_path), 'w')
-        yaml.dump(self.model_args  , open(model_config_path), 'w')
-
         if not save_path is None:
-            model.add_callback( ModelCheckpoint( save_path  , save_frequency  , overwrite_epochs=overwrite_epochs ) )
+            config_path = save_path + "_config.yaml"
+            model_config_path = save_path + "__model_config.yaml"
+            status_file_path = save_path + "_status.txt"
 
-        model.add_callback( ModelTrainingStatusCallback(status_file_path) )
+            # throw exception if training had already happened and finished for the given save path 
+            if os.path.exists(status_file_path):
+                prev_status = open( status_file_path).read()
+                if prev_status == 'finished':
+                    if not overwrite_prev_training:
+                        raise Exception("Looks like training was finished at this checkpoint path " + save_path ) 
+
+            
+            open( status_file_path , 'w').write("starting")
+
+            # save all the config files 
+            yaml.dump(self.function_args_ser  , open(config_path), 'w')
+            yaml.dump(self.model_args  , open(model_config_path), 'w')
+
+            if not save_path is None:
+                model.add_callback( ModelCheckpoint( save_path  , save_frequency  , overwrite_epochs=overwrite_epochs ) )
+
+            model.add_callback( ModelTrainingStatusCallback(status_file_path) )
 
     
         if not load_path is None:
             load_checkpoints_weights( model , load_path , checkpoints_epoch=load_epoch  )
 
-        # todo: add a callback which can add status "training after first 2-3 succesful iterations"
         # todo : add a callback which can add things like to log all the training in a file! 
-
-
+    
 
         # start training 
         model.fit_dataset( dataloader , validation_data=eval_dataloader , epochs=n_epochs  , sanity=sanity  )

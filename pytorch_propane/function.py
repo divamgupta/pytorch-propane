@@ -3,11 +3,46 @@ from six import string_types
 import inspect 
 import sys
 import torch 
+import glob 
+
+from .registry import registry
+from .utils import filter_functions_kwargs , get_cli_opts , get_function_args 
+
+import os 
 
 
-from registry import registry
-from utils import filter_functions_kwargs , get_cli_opts , get_function_args 
-from trainer import get_model_from_checkpoint , load_checkpoints_weights 
+def get_latest_epoch_no( checkpoint_path):
+    all_weigths =  glob.glob(checkpoint_path+"_weights.*"  )
+    all_epochs = [ p.replace(checkpoint_path+"_weights." , "") for p in all_weigths ]
+    all_epochs = [ int( p ) for p in all_epochs if p != "final"]
+    return all_epochs 
+
+def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 , load_latest=False   ):
+    # if checkpoins epochs is not -1 then select the final epoch 
+
+    if checkpoints_epoch >= 0:
+        model.load_weights( checkpoint_path+"_weights." + str( checkpoints_epoch ) ) 
+        print("loaded weights " , checkpoint_path+"_weights." + str( checkpoints_epoch )  )
+    else:
+        if os.path.exists( checkpoint_path+"_weights.final"  ):
+            model.load_weights( checkpoint_path+"_weights.final" )
+            print("loaded weights " , checkpoint_path+"_weights.final"   )
+        elif load_latest:
+            checkpoints_epoch = get_latest_epoch_no(checkpoint_path  )
+            model.load_weights( checkpoint_path+"_weights." + str( checkpoints_epoch ) ) 
+            print("loaded weights " , checkpoint_path+"_weights." + str( checkpoints_epoch )  )
+            
+        else:
+            raise ValueError("please provide an epoch number to load or set the load_latest true. ")
+    
+    
+
+
+
+
+def get_model_from_checkpoint( load_checkpoint_path , return_function=True ,  checkpoints_epoch=-1 , load_latest=False  ):
+    pass 
+
 
 
 
@@ -144,7 +179,7 @@ class Function:
             eval_dataloader , eval_dataloader_kwargs = get_dataloader_object(dataloader_name=eval_dataloader_name , **kwargs  )
 
         # we dont want the kwargs which are sent to model/datalader to be sent to the function 
-        non_function_keys = set( eval_dataloader_kwargs.keys() + dataloader_kwargs.keys() + model_kwargs.keys() + dataset_kwargs.keys() + eval_dataset_kwargs.keys() ) 
+        non_function_keys = set( list(eval_dataloader_kwargs.keys()) + list(dataloader_kwargs.keys() )+ list(model_kwargs.keys()) + list(dataset_kwargs.keys()) + list(eval_dataset_kwargs.keys()) ) 
         fn_kwargs = {}
         for k in kwargs:
             if not k in non_function_keys:
