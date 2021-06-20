@@ -28,7 +28,7 @@ def get_function_args( fn ):
         def_args = []
     else:
         n_defaults = len(inspect.getargspec( fn  ).defaults  )
-        def_args = list(inspect.getargspec( fn  ).defaults ) 
+        def_args = list(inspect.getargspec( fn  ).defaults )
 
     if n_defaults > 0:
         default_args = args[ -1*n_defaults : ]

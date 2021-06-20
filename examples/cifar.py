@@ -49,10 +49,12 @@ def test_data():
     return get_CIFAR10()[3]
 
 
-
+@registry.register_network("cifar_net")
 class CifarNet(torch.nn.Module):
-    def __init__(self):
+    def __init__(self , net_arg ):
         super().__init__()
+
+        print("net arg " , net_arg )
 
         self.resnet = models.resnet18(pretrained=False, num_classes=10)
 
@@ -68,9 +70,8 @@ class CifarNet(torch.nn.Module):
         return x
 
 @registry.register_model("cifar_model_1.0")
-def get_model( some_arg ):
+def get_model( some_arg , network ):
     print("some_arg" ,  some_arg )
-    network = CifarNet()
     model = Model( network=network )
     model.compile( optimizer='adam' , loss='nll_loss' , cuda=True )
     return model 
@@ -81,4 +82,8 @@ from pytorch_propane.trainer import Trainer
 tr = Trainer()
 tr(model_name="cifar_model_1.0" , dataset_name="cifar_data_train" ,
   eval_dataset_name="cifar_data_test" , batch_size=12 , eval_batch_size=2 , pupu=45 
-  , some_arg='jjj' )
+  , some_arg='jjj' , save_path="/tmp/savuu" , n_epochs=20 , sanity=True ,overwrite_prev_training=True , net_arg='netwaarkhh' , network_name='cifar_net' )
+
+
+
+

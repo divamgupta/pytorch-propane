@@ -9,6 +9,7 @@ from .registry import registry
 from .utils import filter_functions_kwargs , get_cli_opts , get_function_args 
 
 import os 
+import yaml 
 
 
 def get_latest_epoch_no( checkpoint_path):
@@ -40,13 +41,63 @@ def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 , l
 
 
 
-def get_model_from_checkpoint( load_checkpoint_path , return_function=True ,  checkpoints_epoch=-1 , load_latest=False  ):
-    pass 
+def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  checkpoints_epoch=-1 , load_latest=False  ):
+
+    model_config_path = load_checkpoint_path + "__model_config.yaml"
+    model_config = yaml.safe_load(open(model_config_path))
+    model_name = model_config['model_name']
+    del model_config['model_name']
+
+    if "network_name" in model_config:
+        network_name = model_config['network_name']
+        del  model_config['network_name'] 
+    else:
+        network_name = None 
+
+    if 'network_config' in model_config:
+        network_config = model_config['network_config']
+        del model_config['network_config']
+
+        if network_config is None:
+            network_config = {}
+
+    else:
+        network_config = {}
+
+
+
+    
+
+    
+
+    if not network_name is None:
+        network , __network_kwargs  = get_network_object( network_name , **network_config )
+    else:
+        network = None 
+
+    
+
+    model_fn  = registry.get_model( model_name )
+
+    if network is None:
+        model = model_fn(**model_config)
+    else:
+        model = model_fn(network=network , **model_config)
+
+    load_checkpoints_weights( model , load_checkpoint_path , checkpoints_epoch=checkpoints_epoch , load_latest=load_latest    )
+
+    if return_function:
+        return model , model_fn 
+    else:
+        return model 
+
+
+    
 
 
 
 
-def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_epoch=None  , **kwargs ):
+def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_epoch=None , network=None  , **kwargs ):
     """Takes the model_name or the checkpoints_path , or both and return a model object and the filtered model_kwargs from kwargs 
 
     Args:
@@ -70,7 +121,10 @@ def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_e
     if not model_name is None:
         model_fn  = registry.get_model( model_name )
         model_kwargs = filter_functions_kwargs( model_fn , kwargs )
-        model = model_fn(**model_kwargs)
+        if network is None:
+            model = model_fn(**model_kwargs)
+        else:
+            model = model_fn(**model_kwargs , network=network ) 
     
 
     if not load_checkpoint_path is None:
@@ -103,6 +157,32 @@ def get_dataloader_object(dataloader_name=None , **kwargs  ):
     dataloader = dataloader_fn(**dataloader_kwargs)
     return dataloader , dataloader_kwargs 
 
+
+
+
+def get_network_object(network_name=None , **kwargs  ):
+    """Takes the network_name  return a network object and the filtered network_kwargs from kwargs 
+
+    Args:
+        network_name ([type], optional): [description]. Defaults to None.
+
+    Raises:
+        ValueError: [description]
+
+    Returns:
+        [type]: [description]
+    """
+    if network_name is None:
+        raise ValueError("The function needs network and you have not provided any network info")
+    
+    network_fn = registry.get_network(network_name) 
+    network_kwargs = filter_functions_kwargs( network_fn , kwargs )
+    network = network_fn(**network_kwargs)
+    return network , network_kwargs 
+
+
+
+
 def get_dataset_object( dataset_name , **kwargs ):
     if dataset_name is None:
         raise ValueError("The function needs dataloader and you have not provided any dataloader info")
@@ -129,7 +209,7 @@ class Function:
 
     # do not override this one tho ! 
     def __call__(self,  model=None  , model_name=None , load_checkpoint_path=None , checkpoints_epoch=None , 
-        dataloader=None , dataloader_name=None , dataset=None , dataset_name=None , 
+        dataloader=None , dataloader_name=None , dataset=None , dataset_name=None , network=None ,  network_name=None , 
         eval_dataloader=None , eval_dataloader_name=None , eval_dataset=None  , eval_dataset_name=None  , 
         batch_size=None , eval_batch_size=None , data_num_workers=1 , eval_data_num_workers=1 , drop_last=False   , **kwargs ) :
 
@@ -140,16 +220,22 @@ class Function:
 
         model_kwargs = {}
         dataloader_kwargs={}
+        network_kwargs={}
         eval_dataloader_kwargs={}
         dataset_kwargs = {}
         eval_dataset_kwargs = {}
+
+
+        if network is None and (not network_name is None ) :
+            network , network_kwargs  = get_network_object( network_name , **kwargs )
+
 
 
 
         assert (not isinstance(model  , string_types)  ) # ensure that model shold actually be a model object haha 
 
         if model is None  and ( (not model_name is None ) or ( not load_checkpoint_path is None  ) ) :
-            model , model_kwargs = get_model_object(model_name=model_name , load_checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch  , **kwargs )
+            model , model_kwargs = get_model_object(model_name=model_name , load_checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch , network=network  , **kwargs )
 
 
 
@@ -164,7 +250,7 @@ class Function:
         if not dataset_name is None:
             dataset , dataset_kwargs = get_dataset_object( dataset_name , **kwargs )
             assert not batch_size is None 
-            dataloader = torch.utils.data.DataLoader(  dataset ,  batch_size=batch_size ,  shuffle= True, num_workers=data_num_workers, drop_last=drop_last  )
+            dataloader = torch.utils.data.DataLoader(  dataset ,  batch_size=batch_size ,  shuffle=True, num_workers=data_num_workers, drop_last=drop_last  )
 
         if not eval_dataset_name is None:
             eval_dataset , eval_dataset_kwargs = get_dataset_object( eval_dataset_name , **kwargs )
@@ -179,7 +265,8 @@ class Function:
             eval_dataloader , eval_dataloader_kwargs = get_dataloader_object(dataloader_name=eval_dataloader_name , **kwargs  )
 
         # we dont want the kwargs which are sent to model/datalader to be sent to the function 
-        non_function_keys = set( list(eval_dataloader_kwargs.keys()) + list(dataloader_kwargs.keys() )+ list(model_kwargs.keys()) + list(dataset_kwargs.keys()) + list(eval_dataset_kwargs.keys()) ) 
+        non_function_keys = set( list(network_kwargs.keys()) +  list(eval_dataloader_kwargs.keys()) + list(dataloader_kwargs.keys() )
+            + list(model_kwargs.keys()) + list(dataset_kwargs.keys()) + list(eval_dataset_kwargs.keys()) ) 
         fn_kwargs = {}
         for k in kwargs:
             if not k in non_function_keys:
@@ -205,7 +292,10 @@ class Function:
         
         self.function_args_ser = kwargs.copy() # serliazable function arguments 
         self.function_args_ser['model_name'] = model_name 
-        self.model_args = model_kwargs 
+        self.model_args = model_kwargs.copy()
+        self.model_args['model_name'] = model_name 
+        self.model_args['network_name'] = network_name 
+        self.model_args['network_config'] = network_kwargs
 
         out =  self.execute( **object_args  , **fn_kwargs )
 

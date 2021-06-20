@@ -46,7 +46,7 @@ class Trainer(Function):
         # save the config etc 
         if not save_path is None:
             config_path = save_path + "_config.yaml"
-            model_config_path = save_path + "__model_config.yaml"
+            model_config_path = save_path + "_model_config.yaml"
             status_file_path = save_path + "_status.txt"
 
             # throw exception if training had already happened and finished for the given save path 
@@ -60,8 +60,8 @@ class Trainer(Function):
             open( status_file_path , 'w').write("starting")
 
             # save all the config files 
-            yaml.dump(self.function_args_ser  , open(config_path), 'w')
-            yaml.dump(self.model_args  , open(model_config_path), 'w')
+            yaml.dump(self.function_args_ser  , open(config_path , 'w') )
+            yaml.dump(self.model_args  , open(model_config_path , 'w'))
 
             if not save_path is None:
                 model.add_callback( ModelCheckpoint( save_path  , save_frequency  , overwrite_epochs=overwrite_epochs ) )

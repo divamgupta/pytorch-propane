@@ -4,7 +4,7 @@ from six import string_types
 from decorator import decorator
 import wrapt 
 import inspect 
-
+import types 
 
 
 
@@ -13,7 +13,8 @@ class Registry():
         self.models = {}
         self.dataloaders = {}
         self.datasets = {}
-
+        self.functions_dict = {}
+        self.networks = {}
     # for registering the models 
 
     def _register_model(self, model_name , model_fn   ):
@@ -92,10 +93,65 @@ class Registry():
 
         if dataset_fn is None:
             return self._register_dataset_dec( dataset_name )
-        return self._register_dataset(dataset_fn=dataset_fn , dataset_name=dataset_name ) 
+        return self._register_dataset(dataset_fn=dataset_fn , dataset_name=dataset_name )
 
     def get_dataset( self , dataset_name):
         return self.datasets[ dataset_name ]
+
+
+
+    def _register_network(self , network_fn , network_name):
+        self.networks[network_name] = network_fn
+
+        # a function decorator which uses should put above network functions to regirter the network given network name 
+    def _register_network_dec( self , network_name ):
+
+        def decorator(network_fn):
+            self._register_network(network_fn=network_fn , network_name=network_name )
+            network_fn.network_name = network_name 
+            network_fn.registry = self 
+            return network_fn  
+        return decorator
+
+    def register_network(self ,  network_name , network_fn=None ):
+
+        if network_fn is None:
+            return self._register_network_dec( network_name )
+        return self._register_network(network_fn=network_fn , network_name=network_name )
+
+    def get_network( self , network_name):
+        return self.networks[ network_name ]
+
+
+
+    def _register_function(self , function , function_name):
+        from pytorch_propane.function import Function
+
+        if inspect.isclass( function ) and issubclass( function , Function ):
+            self.functions_dict[function_name] = function
+        elif isinstance( function , types.FunctionType):
+            raise NotImplementedError("not implemented")
+        else:
+            raise NotImplementedError("not implemented")
+
+        
+
+
+        # a function decorator which uses should put above function functions to regirter the function given function name 
+    def _register_function_dec( self , function_name ):
+
+        def decorator(function):
+            self._register_function(function=function , function_name=function_name )
+            return function  
+        return decorator
+
+    def register_function(self ,  function_name , function=None ):
+
+        if function is None:
+            return self._register_function_dec( function_name )
+        return self._register_function(function=function , function_name=function_name ) 
+
+    
 
     
 
