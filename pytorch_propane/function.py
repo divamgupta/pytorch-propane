@@ -234,7 +234,7 @@ class Function:
 
 
 
-        assert (not isinstance(model  , string_types)  ) # ensure that model shold actually be a model object haha 
+        assert (not isinstance(model  , string_types)  ),  "ensure that model shold actually be a model object"
 
         if model is None  and ( (not model_name is None ) or ( not load_checkpoint_path is None  ) ) :
             model , model_kwargs = get_model_object(model_name=model_name , load_checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch , network=network  , **kwargs )
@@ -251,12 +251,12 @@ class Function:
         
         if not dataset_name is None:
             dataset , dataset_kwargs = get_dataset_object( dataset_name , **kwargs )
-            assert not batch_size is None 
+            assert not batch_size is None , "Please provide the batch size "
             dataloader = torch.utils.data.DataLoader(  dataset ,  batch_size=batch_size ,  shuffle=True, num_workers=data_num_workers, drop_last=drop_last  )
 
         if not eval_dataset_name is None:
             eval_dataset , eval_dataset_kwargs = get_dataset_object( eval_dataset_name , **kwargs )
-            assert not eval_batch_size is None 
+            assert not eval_batch_size is None , "Please provide the batch size "
             eval_dataloader = torch.utils.data.DataLoader(  eval_dataset ,  batch_size=eval_batch_size ,  shuffle=False , num_workers=eval_data_num_workers, drop_last=drop_last  )
 
 
@@ -277,17 +277,17 @@ class Function:
         # we have transformed model/dataloder names etc to model/datalodaer objects. now lets add them to a dict to pass to the execute functions 
         object_args = {} 
         if function_needs_eval_dataloader:
-            assert not eval_dataloader is None
+            assert not eval_dataloader is None , "eval dataloader should not be none "
         if not eval_dataloader is None:
             object_args["eval_dataloader"] = eval_dataloader
 
         if function_needs_dataloader:
-            assert not dataloader is None
+            assert not dataloader is None , "dataloader should not be none "
         if not dataloader is None:
             object_args["dataloader"] = dataloader
 
         if function_needs_model:
-            assert not model is None
+            assert not model is None, "model should not be none "
         if not model is None:
             object_args["model"] = model 
 
@@ -309,6 +309,7 @@ class Function:
         # this should first detect all the args in the cli and then pass it to the call method! 
 
         args_dict = get_cli_opts( sys.argv )
+        print("cli args " , args_dict )
         self.__call__(**args_dict )
 
 
