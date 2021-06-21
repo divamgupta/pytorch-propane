@@ -38,15 +38,14 @@ def get_CIFAR10(root="/tmp/"):
 
     return input_size, num_classes, train_dataset, test_dataset
 
-@registry.register_dataset("cifar_data_train")
-def train_data(pupu):
-    print("pupu is the best " , pupu )
-    return get_CIFAR10()[2]
+@registry.register_dataset("cifar_data")
+def datasett(split , pupu ):
+    print("split is the best " , split  , pupu )
+    if split == 'train':
+        return get_CIFAR10()[2]
+    if split == 'test':
+        return get_CIFAR10()[3]
 
-
-@registry.register_dataset("cifar_data_test")
-def test_data():
-    return get_CIFAR10()[3]
 
 
 @registry.register_network("cifar_net")
@@ -95,5 +94,5 @@ tr = Trainer()
 
 tr._call_cli()
 
-# CUDA_VISIBLE_DEVICES=2 python cifar.py --model_name "cifar_model_1.0"   --dataset_name "cifar_data_train" --eval_dataset_name "cifar_data_test" --batch_size 12  --eval_batch_size 2 --pupu 45 --some_arg 'jjj'  --save_path "/tmp/savuu" --n_epochs 20 --sanity true  --overwrite_prev_training True --net_arg 'netwaarkhh' --network_name 'cifar_net'
+# CUDA_VISIBLE_DEVICES=2 python cifar.py --model_name "cifar_model_1.0"   --dataset_name "cifar_data" --eval_dataset_name "cifar_data" --split train --eval_split test --batch_size 12  --eval_batch_size 2 --pupu 45 --some_arg 'jjj'  --save_path "/tmp/savuu" --n_epochs 20 --sanity true  --overwrite_prev_training True --net_arg 'netwaarkhh' --network_name 'cifar_net'
  

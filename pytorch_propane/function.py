@@ -139,7 +139,21 @@ def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_e
 
     return model , model_kwargs 
 
-def get_dataloader_object(dataloader_name=None , **kwargs  ):
+
+def put_eval_args(dataloader_kwargs ,  dataloader_fn ,  kwargs ):
+    eval_starting_kwargs = {} # the dictionary which needs to be put to the function , hence we remove the eval_ part 
+    to_ret_eval_args = dataloader_kwargs.copy() # but we gotta return it with eval_ in it 
+    
+    for k in kwargs:
+        if "eval_" in k:
+            eval_starting_kwargs[ k.replace("eval_" , "") ] = kwargs[k ]
+            to_ret_eval_args[k] = kwargs[k ]
+    eval_starting_kwargs = filter_functions_kwargs( dataloader_fn , eval_starting_kwargs )
+    for k in eval_starting_kwargs:
+        dataloader_kwargs[k] = eval_starting_kwargs[ k ]
+    return to_ret_eval_args 
+
+def get_dataloader_object(dataloader_name=None , do_eval=False , **kwargs   ):
     """Takes the dataloader_name  return a dataloader object and the filtered dataloader_kwargs from kwargs 
 
     Args:
@@ -156,6 +170,11 @@ def get_dataloader_object(dataloader_name=None , **kwargs  ):
     
     dataloader_fn = registry.get_dataloader(dataloader_name) 
     dataloader_kwargs = filter_functions_kwargs( dataloader_fn , kwargs )
+    # the above are the main dataloader args 
+    if do_eval:
+        # now we also find the eval dataloader args (starting with eval_ ) which should be overwritten 
+        put_eval_args(dataloader_kwargs ,  dataloader_fn ,  kwargs )
+
     dataloader = dataloader_fn(**dataloader_kwargs)
     return dataloader , dataloader_kwargs 
 
@@ -185,14 +204,21 @@ def get_network_object(network_name=None , **kwargs  ):
 
 
 
-def get_dataset_object( dataset_name , **kwargs ):
+def get_dataset_object( dataset_name , do_eval=False , **kwargs ):
     if dataset_name is None:
         raise ValueError("The function needs dataloader and you have not provided any dataloader info")
     
     dataset_fn = registry.get_dataset(dataset_name) 
     dataset_kwargs = filter_functions_kwargs( dataset_fn , kwargs )
+    # the above are the main dataloader args 
+    if do_eval:
+        # now we also find the eval dataloader args (starting with eval_ ) which should be overwritten 
+        to_return_dataset_args = put_eval_args(dataset_kwargs ,  dataset_fn ,  kwargs )
+    else:
+        to_return_dataset_args = dataset_kwargs
+
     dataset = dataset_fn(**dataset_kwargs)
-    return dataset , dataset_kwargs 
+    return dataset , to_return_dataset_args 
 
 
 # this is the Function base class where users can inherit the Functions class 
@@ -255,7 +281,7 @@ class Function:
             dataloader = torch.utils.data.DataLoader(  dataset ,  batch_size=batch_size ,  shuffle=True, num_workers=data_num_workers, drop_last=drop_last  )
 
         if not eval_dataset_name is None:
-            eval_dataset , eval_dataset_kwargs = get_dataset_object( eval_dataset_name , **kwargs )
+            eval_dataset , eval_dataset_kwargs = get_dataset_object( eval_dataset_name, do_eval=True  , **kwargs  )
             assert not eval_batch_size is None , "Please provide the batch size "
             eval_dataloader = torch.utils.data.DataLoader(  eval_dataset ,  batch_size=eval_batch_size ,  shuffle=False , num_workers=eval_data_num_workers, drop_last=drop_last  )
 
@@ -264,7 +290,7 @@ class Function:
             dataloader , dataloader_kwargs = get_dataloader_object(dataloader_name=dataloader_name , **kwargs  )
 
         if eval_dataloader is None and (not eval_dataloader_name is None ) :
-            eval_dataloader , eval_dataloader_kwargs = get_dataloader_object(dataloader_name=eval_dataloader_name , **kwargs  )
+            eval_dataloader , eval_dataloader_kwargs = get_dataloader_object(dataloader_name=eval_dataloader_name, do_eval=True  , **kwargs  )
 
         # we dont want the kwargs which are sent to model/datalader to be sent to the function 
         non_function_keys = set( list(network_kwargs.keys()) +  list(eval_dataloader_kwargs.keys()) + list(dataloader_kwargs.keys() )
