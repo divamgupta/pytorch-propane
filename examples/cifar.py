@@ -84,6 +84,8 @@ tr(model_name="cifar_model_1.0" , dataset_name="cifar_data_train" ,
   eval_dataset_name="cifar_data_test" , batch_size=12 , eval_batch_size=2 , pupu=45 
   , some_arg='jjj' , save_path="/tmp/savuu" , n_epochs=20 , sanity=True ,overwrite_prev_training=True , net_arg='netwaarkhh' , network_name='cifar_net' )
 
+from pytorch_propane.function import get_model_from_checkpoint
+model = get_model_from_checkpoint("/tmp/savuu")
 
 
-
+print( model )

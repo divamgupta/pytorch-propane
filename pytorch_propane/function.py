@@ -43,8 +43,10 @@ def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 , l
 
 def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  checkpoints_epoch=-1 , load_latest=False  ):
 
-    model_config_path = load_checkpoint_path + "__model_config.yaml"
+    model_config_path = load_checkpoint_path + "_model_config.yaml"
     model_config = yaml.safe_load(open(model_config_path))
+
+
     model_name = model_config['model_name']
     del model_config['model_name']
 
