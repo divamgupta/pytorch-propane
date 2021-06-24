@@ -18,20 +18,20 @@ def get_latest_epoch_no( checkpoint_path):
     all_epochs = [ int( p ) for p in all_epochs if p != "final"]
     return all_epochs 
 
-def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 , load_latest=False   ):
+def load_checkpoints_weights( model , checkpoint_path , load_checkpoints_epoch=-1 , load_latest=False   ):
     # if checkpoins epochs is not -1 then select the final epoch 
 
-    if checkpoints_epoch >= 0:
-        model.load_weights( checkpoint_path+"_weights." + str( checkpoints_epoch ) ) 
-        print("loaded weights " , checkpoint_path+"_weights." + str( checkpoints_epoch )  )
+    if load_checkpoints_epoch >= 0:
+        model.load_weights( checkpoint_path+"_weights." + str( load_checkpoints_epoch ) ) 
+        print("loaded weights " , checkpoint_path+"_weights." + str( load_checkpoints_epoch )  )
     else:
         if os.path.exists( checkpoint_path+"_weights.final"  ):
             model.load_weights( checkpoint_path+"_weights.final" )
             print("loaded weights " , checkpoint_path+"_weights.final"   )
         elif load_latest:
-            checkpoints_epoch = get_latest_epoch_no(checkpoint_path  )
-            model.load_weights( checkpoint_path+"_weights." + str( checkpoints_epoch ) ) 
-            print("loaded weights " , checkpoint_path+"_weights." + str( checkpoints_epoch )  )
+            load_checkpoints_epoch = get_latest_epoch_no(checkpoint_path  )
+            model.load_weights( checkpoint_path+"_weights." + str( load_checkpoints_epoch ) ) 
+            print("loaded weights " , checkpoint_path+"_weights." + str( load_checkpoints_epoch )  )
             
         else:
             raise ValueError("please provide an epoch number to load or set the load_latest true. ")
@@ -41,7 +41,7 @@ def load_checkpoints_weights( model , checkpoint_path , checkpoints_epoch=-1 , l
 
 
 
-def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  checkpoints_epoch=-1 , load_latest=False  ):
+def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  load_checkpoints_epoch=-1 , load_latest=False  ):
 
     model_config_path = load_checkpoint_path + "_model_config.yaml"
     model_config = yaml.safe_load(open(model_config_path))
@@ -66,12 +66,6 @@ def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  
     else:
         network_config = {}
 
-
-
-    
-
-    
-
     if not network_name is None:
         network , __network_kwargs  = get_network_object( network_name , **network_config )
     else:
@@ -86,7 +80,7 @@ def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  
     else:
         model = model_fn(network=network , **model_config)
 
-    load_checkpoints_weights( model , load_checkpoint_path , checkpoints_epoch=checkpoints_epoch , load_latest=load_latest    )
+    load_checkpoints_weights( model , load_checkpoint_path , load_checkpoints_epoch=load_checkpoints_epoch , load_latest=load_latest    )
 
     if return_function:
         return model , model_fn 
@@ -95,18 +89,29 @@ def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  
 
 
     
+def get_dataloader_from_checkpoint(load_checkpoint_path , eval_dataloader=False ):
+    config_path = load_checkpoint_path + "_config.yaml"
+    config = yaml.safe_load(open(config_path))
+    config_objects = Function().__call__(just_return_objects=True , ** config )
+    
+    if eval_dataloader:
+        return config_objects['eval_dataloader']
+    else:
+        return config_objects['dataloader']
 
 
 
 
-def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_epoch=None , network=None  , **kwargs ):
+
+
+def get_model_object(model_name=None , load_checkpoint_path=None , load_checkpoints_epoch=None , network=None  , **kwargs ):
     """Takes the model_name or the checkpoints_path , or both and return a model object and the filtered model_kwargs from kwargs 
 
     Args:
         kwargs ([type]): [description]
         model_name ([type], optional): [description]. Defaults to None.
         load_checkpoint_path ([type], optional): [description]. Defaults to None.
-        checkpoints_epoch ([type], optional): [description]. Defaults to None.
+        load_checkpoints_epoch ([type], optional): [description]. Defaults to None.
 
     Raises:
         ValueError: [description]
@@ -131,10 +136,10 @@ def get_model_object(model_name=None , load_checkpoint_path=None , checkpoints_e
 
     if not load_checkpoint_path is None:
         if model is None:
-            model , model_fn = get_model_from_checkpoint( load_checkpoint_path , return_function=True , checkpoints_epoch=checkpoints_epoch)
+            model , model_fn = get_model_from_checkpoint( load_checkpoint_path , return_function=True , load_checkpoints_epoch=load_checkpoints_epoch)
             model_kwargs = filter_functions_kwargs( model_fn , kwargs )
         else:
-            load_checkpoints_weights( model , checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch )
+            load_checkpoints_weights( model , checkpoint_path=load_checkpoint_path , load_checkpoints_epoch=load_checkpoints_epoch )
             
 
     return model , model_kwargs 
@@ -236,10 +241,40 @@ class Function:
         raise NotImplementedError("This needs to be overridden")
 
     # do not override this one tho ! 
-    def __call__(self,  model=None  , model_name=None , load_checkpoint_path=None , checkpoints_epoch=None , 
+    def __call__(self,  model=None  , model_name=None , load_checkpoint_path=None , load_checkpoints_epoch=None , 
         dataloader=None , dataloader_name=None , dataset=None , dataset_name=None , network=None ,  network_name=None , 
         eval_dataloader=None , eval_dataloader_name=None , eval_dataset=None  , eval_dataset_name=None  , 
-        batch_size=None , eval_batch_size=None , data_num_workers=1 , eval_data_num_workers=1 , drop_last=False   , **kwargs ) :
+        batch_size=None , eval_batch_size=None , data_num_workers=1 , eval_data_num_workers=1 , drop_last=False , just_return_objects=False  , **kwargs ) :
+        """ This call function is used to transform the model_name , dataset_name , etc etc to model object , dataset object etc! 
+
+        Args:
+            model ([type], optional): [The model object ]. Defaults to None.
+            model_name ([type], optional): [description]. Defaults to None.
+            load_checkpoint_path ([type], optional): [description]. Defaults to None.
+            load_checkpoints_epoch ([type], optional): [description]. Defaults to None.
+            dataloader ([type], optional): [description]. Defaults to None.
+            dataloader_name ([type], optional): [description]. Defaults to None.
+            dataset ([type], optional): [description]. Defaults to None.
+            dataset_name ([type], optional): [description]. Defaults to None.
+            network ([type], optional): [description]. Defaults to None.
+            network_name ([type], optional): [description]. Defaults to None.
+            eval_dataloader ([type], optional): [description]. Defaults to None.
+            eval_dataloader_name ([type], optional): [description]. Defaults to None.
+            eval_dataset ([type], optional): [description]. Defaults to None.
+            eval_dataset_name ([type], optional): [description]. Defaults to None.
+            batch_size ([type], optional): [description]. Defaults to None.
+            eval_batch_size ([type], optional): [description]. Defaults to None.
+            data_num_workers (int, optional): [description]. Defaults to 1.
+            eval_data_num_workers (int, optional): [description]. Defaults to 1.
+            drop_last (bool, optional): [description]. Defaults to False.
+            just_return_objects (bool, optional): [If this is set to true then it wont run self.exicute but just return the model, dataloader objects etc etc ]. Defaults to False.
+
+        Returns:
+            [type]: [description]
+        """
+
+        localss = locals()
+        function_args = { arg: localss[arg] for arg in inspect.getfullargspec(self.__call__ ).args if arg != 'self'}  
 
         # inspect the functions and see if the model , dataloader etc are mandatory for the fucntion of not 
         function_needs_model = ( 'model' in get_function_args(self.execute)[2]   )
@@ -258,13 +293,10 @@ class Function:
             network , network_kwargs  = get_network_object( network_name , **kwargs )
 
 
-
-
         assert (not isinstance(model  , string_types)  ),  "ensure that model shold actually be a model object"
 
         if model is None  and ( (not model_name is None ) or ( not load_checkpoint_path is None  ) ) :
-            model , model_kwargs = get_model_object(model_name=model_name , load_checkpoint_path=load_checkpoint_path , checkpoints_epoch=checkpoints_epoch , network=network  , **kwargs )
-
+            model , model_kwargs = get_model_object(model_name=model_name , load_checkpoint_path=load_checkpoint_path , load_checkpoints_epoch=load_checkpoints_epoch , network=network  , **kwargs )
 
 
         # if the dataset is provided then  it will create the dataloader itself, hence the dataloader should not be provided 
@@ -319,15 +351,23 @@ class Function:
 
         
         self.function_args_ser = kwargs.copy() # serliazable function arguments 
-        self.function_args_ser['model_name'] = model_name 
+        self.function_args_ser.update( function_args ) # also add the function argumets 
+        # now remove all the non serializable args 
+        non_ser_args = ['model',  'dataloader',  'network' ,  'eval_dataloader' ,  'eval_dataset' ,  'just_return_objects' ]
+        for arg in non_ser_args:
+            del self.function_args_ser[arg]
+
+
         self.model_args = model_kwargs.copy()
         self.model_args['model_name'] = model_name 
         self.model_args['network_name'] = network_name 
         self.model_args['network_config'] = network_kwargs
 
-        out =  self.execute( **object_args  , **fn_kwargs )
-
-        return out 
+        if just_return_objects:
+            return object_args 
+        else:
+            out =  self.execute( **object_args  , **fn_kwargs )
+            return out 
 
     # this one will be used by the cli engine 
     def _call_cli(self):
