@@ -370,12 +370,13 @@ class Function:
             return out 
 
     # this one will be used by the cli engine 
-    def _call_cli(self):
-        pass
-        # this should first detect all the args in the cli and then pass it to the call method! 
+    def _call_cli(self , args_dict=None ):
+        # this should first deect all the args in the cli and then pass it to the call method! 
 
-        args_dict = get_cli_opts( sys.argv )
-        print("cli args " , args_dict )
+        if args_dict is None:
+            args_dict = get_cli_opts( sys.argv )
+            print("cli args " , args_dict )
+
         self.__call__(**args_dict )
 
 

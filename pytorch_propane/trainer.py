@@ -32,6 +32,7 @@ class ModelTrainingStatusCallback( Callback ):
 # status file -> starting , started , finished 
 
 # @register_function 
+@registry.register_function("train")
 class Trainer(Function):
     def __init__(self):
         pass

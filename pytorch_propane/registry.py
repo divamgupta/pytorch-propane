@@ -151,6 +151,10 @@ class Registry():
             return self._register_function_dec( function_name )
         return self._register_function(function=function , function_name=function_name ) 
 
+    def get_function(self , function_name ):
+        return self.functions_dict[ function_name ]
+        
+
     
 
     

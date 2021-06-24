@@ -8,4 +8,11 @@ setup(name="pytorch_propane",
       license="MIT",
       url="http://github.com/divamgupta/pytorch-propane",
       packages=find_packages(),
-      )
+      entry_points={
+            'console_scripts': [
+                  'pytorch_propane = pytorch_propane.cli:run_cli'
+            ]
+      }
+
+
+)
