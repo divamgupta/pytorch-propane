@@ -106,6 +106,52 @@ class ModelCheckpoint( Callback ):
         self.model.save_weights(model_path  )
         
     
+
+# to log the loss values in  a text file 
+class LossLogger( Callback ):
+    def __init__(self , out_filename ):
+        super(LossLogger, self).__init__()
+        self.epoch_vals_history_dict = {}
+        self.epochs = 0 
+        self.out_filename = out_filename
+
+        open(self.out_filename , "w").write(  ""  )
+    
+    def on_train_batch_end( self , batch , logs=None ):
+        
+        vals_dict = logs['batch_losses']
+
+        for k in vals_dict:
+            if not k in self.epoch_vals_history_dict:
+                self.epoch_vals_history_dict[k] = []
+            self.epoch_vals_history_dict[k].append( vals_dict[k])
+        
+        line_str = "Epoch %d Batch %d "%( self.epochs , batch )
+        for k in vals_dict:
+            line_str += k+":"+ "%.3f"%(vals_dict[k]) + " "
+        line_str += "\n"
+
+        open(self.out_filename , "a").write(  line_str  )
+    
+    def on_epoch_end( self , epoch , logs=None):
+        
+        open(self.out_filename , "a").write(  "=======\n"   )
+
+
+        line_str = "Epoch %d "%( self.epochs  )
+        for k in self.epoch_vals_history_dict:
+            line_str += k+":"+ "%.3f"%(np.mean(self.epoch_vals_history_dict[k])) + " "
+        line_str += "\n"
+
+        open(self.out_filename , "a").write(  line_str  )
+        open(self.out_filename , "a").write(  "=======\n\n"   )
+
+        self.epoch_vals_history_dict = {}
+        self.epochs += 1 
+
+
+
+
         
 class TensorboardCallback( Callback ):
     def __init__(self):

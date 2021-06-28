@@ -316,13 +316,13 @@ class Model:
     def fit_dataset(self , training_data,  epochs=1, verbose=1, callbacks=None, validation_data=None , validation_freq=1 , sanity=False  ):
         
         if sanity:
-            epochs = min( sanity , 3 )
+            epochs = min( epochs , 3 )
 
         
         total_iter_done = 0 
         for epoch in range(epochs) :
             if verbose == 1:
-                print("epoch %d : "%epoch)
+                print("epoch %d of %d : "%(epoch, epochs ))
                 pbar = ProgressBar(training_data )
             else:
                 pbar = training_data 
@@ -337,7 +337,7 @@ class Model:
                     loss_dict_a['train_loss_total'] = total_loss.item()
                     pbar.add(loss_dict_a)
                 
-                self.call_callbacks('on_train_batch_end' , batch_id=total_iter_done )
+                self.call_callbacks('on_train_batch_end' , batch_id=total_iter_done , logs={'batch_losses': loss_dict_a  } )
                 
                 if sanity and batch_idx>=3:
                     break 
@@ -345,7 +345,7 @@ class Model:
             if ( not validation_data is None ) and   epoch%validation_freq == 0:
                 self.evaluate_dataset( validation_data , verbose=verbose , sanity=sanity )
                 
-            self.call_callbacks('on_epoch_end' , batch_id=epoch )
+            self.call_callbacks('on_epoch_end' , batch_id=epoch   )
         self.call_callbacks('on_train_end')
         
             

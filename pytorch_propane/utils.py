@@ -147,11 +147,11 @@ class ProgressBar(tqdm):
                 self.vals_history_dict[k] = []
             self.vals_history_dict[k].append( vals_dict[k])
         
-        bar_str = ""
+        self.bar_str = ""
         for k in self.vals_history_dict:
-            bar_str += k+":"+ "%.3f"%(np.mean(self.vals_history_dict[k])) + " "
+            self.bar_str += k+":"+ "%.3f"%(np.mean(self.vals_history_dict[k])) + " "
         
-        self.set_description(bar_str )
+        self.set_description(self.bar_str )
         
     
 

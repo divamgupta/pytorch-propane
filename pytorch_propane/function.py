@@ -16,7 +16,7 @@ def get_latest_epoch_no( checkpoint_path):
     all_weigths =  glob.glob(checkpoint_path+"_weights.*"  )
     all_epochs = [ p.replace(checkpoint_path+"_weights." , "") for p in all_weigths ]
     all_epochs = [ int( p ) for p in all_epochs if p != "final"]
-    return all_epochs 
+    return max(all_epochs) 
 
 def load_checkpoints_weights( model , checkpoint_path , load_checkpoints_epoch=-1 , load_latest=False   ):
     # if checkpoins epochs is not -1 then select the final epoch 
@@ -39,11 +39,8 @@ def load_checkpoints_weights( model , checkpoint_path , load_checkpoints_epoch=-
     
 
 
+def get_model_from_config( model_config_path , return_function=False ):
 
-
-def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  load_checkpoints_epoch=-1 , load_latest=False  ):
-
-    model_config_path = load_checkpoint_path + "_model_config.yaml"
     model_config = yaml.safe_load(open(model_config_path))
 
 
@@ -79,6 +76,19 @@ def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  
         model = model_fn(**model_config)
     else:
         model = model_fn(network=network , **model_config)
+
+    if return_function:
+        return model , model_fn 
+    else:
+        return model 
+
+
+def get_model_from_checkpoint( load_checkpoint_path , return_function=False  ,  load_checkpoints_epoch=-1 , load_latest=False  ):
+
+    model_config_path = load_checkpoint_path + "_model_config.yaml"
+
+    model , model_fn  = get_model_from_config( model_config_path , return_function=True ) 
+    
 
     load_checkpoints_weights( model , load_checkpoint_path , load_checkpoints_epoch=load_checkpoints_epoch , load_latest=load_latest    )
 

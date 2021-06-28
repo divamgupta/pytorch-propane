@@ -7,7 +7,7 @@ import yaml
 import os 
 import glob 
 
-from .callbacks import ModelCheckpoint ,  Callback
+from .callbacks import ModelCheckpoint ,  Callback , LossLogger
 from .function import get_model_from_checkpoint , load_checkpoints_weights 
 
 
@@ -66,8 +66,10 @@ class Trainer(Function):
 
             if not save_path is None:
                 model.add_callback( ModelCheckpoint( save_path  , save_frequency  , overwrite_epochs=overwrite_epochs ) )
-
-            model.add_callback( ModelTrainingStatusCallback(status_file_path) )
+                model.add_callback( LossLogger(save_path+"_loss_logs.txt") )
+            
+            if not sanity:
+                model.add_callback( ModelTrainingStatusCallback(status_file_path) )
 
     
         if not load_path is None:
