@@ -114,7 +114,7 @@ def get_dataloader_from_checkpoint(load_checkpoint_path , eval_dataloader=False 
 
 
 
-def get_model_object(model_name=None , load_checkpoint_path=None , load_checkpoints_epoch=None , network=None  , **kwargs ):
+def get_model_object(model_name=None , load_checkpoint_path=None , load_checkpoints_epoch=-1 , network=None  , **kwargs ):
     """Takes the model_name or the checkpoints_path , or both and return a model object and the filtered model_kwargs from kwargs 
 
     Args:
@@ -251,7 +251,7 @@ class Function:
         raise NotImplementedError("This needs to be overridden")
 
     # do not override this one tho ! 
-    def __call__(self,  model=None  , model_name=None , load_checkpoint_path=None , load_checkpoints_epoch=None , 
+    def __call__(self,  model=None  , model_name=None , load_checkpoint_path=None , load_checkpoints_epoch=-1 , 
         dataloader=None , dataloader_name=None , dataset=None , dataset_name=None , network=None ,  network_name=None , 
         eval_dataloader=None , eval_dataloader_name=None , eval_dataset=None  , eval_dataset_name=None  , 
         batch_size=None , eval_batch_size=None , data_num_workers=1 , eval_data_num_workers=1 , drop_last=False , just_return_objects=False  , **kwargs ) :

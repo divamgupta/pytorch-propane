@@ -76,6 +76,8 @@ class Trainer(Function):
             load_checkpoints_weights( model , load_path , checkpoints_epoch=load_epoch  )
 
         # todo : add a callback which can add things like to log all the training in a file! 
+
+        model._trainer_args = {"dataloader":dataloader , "eval_dataloader":eval_dataloader ,"n_epochs":n_epochs , "sanity":sanity    }
     
 
         # start training 

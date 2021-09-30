@@ -94,6 +94,7 @@ def get_cli_opts(argv):
 
 
             assert argv[0] != '' , "There is some issue with the cli args becasue a key cannot be empty"
+            assert not argv[0] in opts , "Repeated argument: "+argv[0]
             opts[argv[0]] = str_to_auto_type( argv[1] )   # Add key and value to the dictionary.
         argv = argv[1:]  # Reduce the argument list by copying it starting from index 1.
 
